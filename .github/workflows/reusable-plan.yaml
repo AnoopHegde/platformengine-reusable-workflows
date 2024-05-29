@@ -30,4 +30,4 @@ jobs:
       run: |
         sudo apt-get update -q
         sudo apt-get install -y kubectl
-        which kubectl  
+        which kubectl
