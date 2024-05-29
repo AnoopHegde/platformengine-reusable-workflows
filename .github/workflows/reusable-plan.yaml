@@ -9,10 +9,6 @@ on:
             description: 'The environment to be created'
             required: true
             type: string
-        working-directory:
-            description: 'The working directory of Terraform project'
-            required: true
-            type: string
         runner-label:
             description: 'The label of the runner, only supports one at this moment'
             required: false
