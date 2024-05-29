@@ -1,0 +1,37 @@
+on:
+  workflow_call:
+    inputs:
+        github-env:
+            description: 'The name of Github environment, which configures all environment variables and secrets'
+            required: true
+            type: string
+        environment:
+            description: 'The environment to be created'
+            required: true
+            type: string
+        working-directory:
+            description: 'The working directory of Terraform project'
+            required: true
+            type: string
+        runner-label:
+            description: 'The label of the runner, only supports one at this moment'
+            required: false
+            default: ubuntu-latest
+            type: string
+
+name: Install Package
+jobs:
+  plan:
+    runs-on: ${{ inputs.runner-label }}
+    environment: ${{ inputs.github-env }}          
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3   
+      
+    - name: Install kubectl package
+      if: ${{ !contains(inputs.runner-label, 'ubuntu-latest')}}
+      run: |
+        sudo apt-get update -q
+        sudo apt-get install -y kubectl
+        which kubectl  
