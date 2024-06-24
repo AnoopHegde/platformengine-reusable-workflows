@@ -1,0 +1,156 @@
+on:
+  workflow_call:
+    inputs:
+      github-env:
+        description: 'The name of Github environment, which configures all environment variables and secrets'
+        required: true
+        type: string
+      environment:
+        description: 'The environment to be created'
+        required: true
+        type: string
+      working-directory:
+        description: 'The working directory of Terraform project'
+        required: true
+        type: string
+      vars-path:
+        description: 'The path of Terraform var file, relative to working-directory'
+        required: true
+        type: string
+      runner-label:
+        description: 'The label of the runner, only supports one at this moment'
+        required: false
+        default: ubuntu-latest
+        type: string
+      tfplan-name:
+        description: 'The file name of Terraform plan output'
+        required: true
+        type: string
+      artifact-name:
+        description: 'The name of published artifact that includes Terraform plan output file'
+        required: false
+        default: artifact
+        type: string
+      tfvars:
+        description: 'TF variables'
+        required: false
+        type: string
+      
+env:
+  GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+  project_id: ${{ vars.GCP_PROJECT_ID }}
+  
+
+name: PE Plan
+jobs:
+  plan:
+    runs-on: ${{ inputs.runner-label }}
+    environment: ${{ inputs.github-env }}
+    env:
+      project_id: ${{ vars.GCP_PROJECT_ID }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+   
+    - name: Google Cloud login Authentication
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        project_id: ${{ vars.GCP_PROJECT_ID }}
+      
+    - name: Terraform plan
+      id: tfplan
+      shell: bash
+      run: |
+        terraform init -reconfigure
+        terraform plan -var-file=${{ inputs.vars-path }}  ${{ inputs.tfvars }} -no-color -out=${{ inputs.tfplan-name }} > planfile
+        cat planfile
+        cp planfile $GITHUB_WORKSPACE/
+
+        terraform show -json ${{ inputs.tfplan-name }} | jq > tfplan.json
+
+        #Loading into Github Output
+        echo 'PLANFILE<<EOF' >> $GITHUB_OUTPUT
+        cat planfile  >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT
+      working-directory: ${{ inputs.working-directory }}
+
+    - name: upload tfplan-json artifact
+      id: uploadtfplanjson
+      uses: actions/upload-artifact@v3
+      with:
+        name: tfplanjson-artifact
+        path: ${{ inputs.working-directory }}/tfplan.json
+
+    - name: Display structure of downloaded files
+      run: ls -R
+      working-directory: ${{ inputs.working-directory }}
+
+    - name: Publish plan output
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.working-directory }}/${{ inputs.tfplan-name }}
+        if-no-files-found: error
+
+    # When a PR is raised, write the Plan and Status to the PR as a comment
+    - name: Write PE Terraform Plan to PR
+      uses: actions/github-script@v5
+      if: github.event_name == 'pull_request'
+      with:
+        github-token: ${{ github.token }}
+        script: |
+         const fs = require('fs').promises;
+         // Read the planfile from the workspace
+         let plan = await fs.readFile(`${process.env.GITHUB_WORKSPACE}/planfile`, 'utf8');
+
+         // Filter out unnecessary lines
+          const patterns = [': Reading...', ': Refreshing state...', ': Read complete after', ': Still reading...'];
+          plan = plan.split('\n').filter(line => !patterns.some(pattern => line.includes(pattern))).join('\n');
+
+         // 1. Retrieve existing bot comments for the PR
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const botComment = comments.find(comment => {
+            return comment.user.type === 'Bot' &&
+                    comment.body.includes('#### Environment `${{ inputs.environment }}`') &&
+                    comment.body.includes('#### Layer `${{ inputs.working-directory }}`') &&
+                    comment.body.includes('#### QSAloyment Engine Plan');
+          });
+
+          // 2. Prepare format of the comment
+          const output = `#### Environment \`${{ inputs.environment }}\`
+          #### Workflow \`${{ inputs.working-directory }}\`
+          #### QSAloyment Engine Plan 📖\`${{ steps.tfplan.outcome }}\`
+          QSAloyment Engine Plan:
+          <details><summary>Show Plan</summary>
+
+          \`\`\`\n
+          ${plan}
+          \`\`\`
+
+          </details>
+
+          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
+
+          // 3. If we have a comment, update it, otherwise create a new one
+          if (botComment) {
+            github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: output
+            });
+          } else {
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+          }

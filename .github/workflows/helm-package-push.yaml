@@ -1,0 +1,49 @@
+name: 'Helm Package and Push'
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'The name of Github environment, which configures all environment variables and secrets'
+        required: true
+        type: string
+      runner_label:
+        description: 'The label of the runner, only supports one at this moment'
+        required: false
+        default: ubuntu-latest
+        type: string
+      chart_oci_name:
+        description: 'Name of the helm chart oci name'
+        required: true
+        type: string
+      chart_directory:
+        description: 'Helm charts directory having Chart.yaml'
+        required: true
+        type: string
+      
+
+jobs:
+  helm-package-and-push:
+    name: Helm package and push
+    runs-on: ${{ inputs.runner_label }}
+    environment: ${{ inputs.environment }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    
+    - name: Login to ACR
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD}}
+ 
+    - name: Package helm
+      run: |
+        ls
+        CHART_NAME=$(grep "^name:" Chart.yaml | cut -d " " -f 2)
+        CHART_VERSION=$(grep "^version:" Chart.yaml | cut -d " " -f 2)
+        helm package .
+        helm  push $CHART_NAME-$CHART_VERSION.tgz ${{ inputs.chart_oci_name }}/helm/
+      working-directory: ${{ inputs.chart_directory }}

@@ -1,0 +1,69 @@
+on:
+  workflow_call:
+    inputs:
+      github-env:
+        description: 'The name of Github environment, which configures all environment variables and secrets'
+        required: true
+        type: string
+      working-directory:
+        description: 'The working directory of Terraform project'
+        required: true
+        type: string
+      runner-label:
+        description: 'The label of the runner, only supports one at this moment'
+        required: false
+        default: ubuntu-latest
+        type: string
+      tfplan-name:
+        description: 'The file name of Terraform plan output'
+        required: true
+        type: string
+      artifact-name:
+        description: 'The name of artifact to download'
+        required: false
+        default: artifact
+        type: string
+      tfvars:
+        description: 'TF variables'
+        required: false
+        type: string
+
+env:
+  GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+  project_id: ${{ vars.GCP_PROJECT_ID }}
+
+name: PE Apply 
+jobs:
+  apply:
+    runs-on: ${{ inputs.runner-label }}
+    environment: ${{ inputs.github-env }}-approval
+    env:
+      project_id: ${{ vars.GCP_PROJECT_ID }}
+      
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.working-directory }}
+
+    - name: Google Cloud login Authentication
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        project_id: ${{ vars.GCP_PROJECT_ID }}
+  
+    - name: Terraform apply
+      shell: bash
+      run: |
+        terraform init -reconfigure
+        terraform apply ${{ inputs.tfplan-name }}
+      working-directory: ${{ inputs.working-directory }}
+   
+   
+   
+   
+   
+   
