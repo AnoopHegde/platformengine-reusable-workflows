@@ -2,7 +2,7 @@ on:
   workflow_call:
     inputs:
       github-env:
-        description: 'The Github environment to use for this QWEloy'
+        description: 'The Github environment to use for this Deploy'
         required: true
         type: string
       environment:
@@ -42,6 +42,14 @@ jobs:
       #tfvars: ${{ inputs.tfvars }}
     secrets: inherit
 
+  infracost:
+    needs: plan
+    uses: AnoopHegde/platformengine-reusable-workflows/.github/workflows/infracost-reusable-cicd.yaml@main
+    with:
+      working-directory: ${{ inputs.working-directory }}
+    secrets:
+       PE_INFRACOST_API_KEY: ${{ secrets.PE_INFRACOST_API_KEY }}  
+    
   apply:
     if: github.ref_name == 'main'
     needs: plan
