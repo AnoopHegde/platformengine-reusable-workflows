@@ -37,8 +37,8 @@ on:
         type: string
       
 env:
-  GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
-  project_id: ${{ vars.GCP_PROJECT_ID }}
+  GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
   
 
 name: PE Plan
