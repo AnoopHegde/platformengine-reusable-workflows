@@ -31,10 +31,10 @@ on:
         required: false
         default: artifact
         type: string
-      tfvars:
-        description: 'TF variables'
-        required: false
-        type: string
+      #tfvars:
+      #  description: 'TF variables'
+      #  required: false
+      #  type: string
       
 env:
   GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
@@ -64,7 +64,7 @@ jobs:
       shell: bash
       run: |
         terraform init -reconfigure
-        terraform plan -var-file=${{ inputs.vars-path }}  ${{ inputs.tfvars }} -no-color -out=${{ inputs.tfplan-name }} > planfile
+        terraform plan -var-file=${{ inputs.vars-path }} -no-color -out=${{ inputs.tfplan-name }} > planfile
         cat planfile
         cp planfile $GITHUB_WORKSPACE/
 

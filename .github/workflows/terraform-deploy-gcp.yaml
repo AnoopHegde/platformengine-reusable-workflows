@@ -39,7 +39,7 @@ jobs:
       runner-label: ${{ inputs.runner-label }}
       tfplan-name: plan-${{ inputs.environment }}.out
       artifact-name: artifact-${{ inputs.environment }}
-      tfvars: ${{ inputs.tfvars }}
+      #tfvars: ${{ inputs.tfvars }}
     secrets: inherit
 
   apply:
@@ -52,5 +52,5 @@ jobs:
       runner-label: ${{ inputs.runner-label }}
       tfplan-name: plan-${{ inputs.environment }}.out
       artifact-name: artifact-${{ inputs.environment }}
-      tfvars: ${{ inputs.tfvars }}
+      #tfvars: ${{ inputs.tfvars }}
     secrets: inherit

@@ -23,10 +23,10 @@ on:
         required: false
         default: artifact
         type: string
-      tfvars:
-        description: 'TF variables'
-        required: false
-        type: string
+      #tfvars:
+      #  description: 'TF variables'
+      #  required: false
+      #  type: string
 
 env:
   GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
