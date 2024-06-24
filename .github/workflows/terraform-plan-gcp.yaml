@@ -51,7 +51,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+
+    - name: Use Node.js latest
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'  
    
     - name: Google Cloud login Authentication
       uses: 'google-github-actions/auth@v2'
