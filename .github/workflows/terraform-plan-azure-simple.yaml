@@ -67,7 +67,6 @@ jobs:
       run: |
         echo "${{ secrets.ARM_CLIENT_CERTIFICATE }}" | base64 -d > cert.pfx
         export ARM_CLIENT_CERTIFICATE_PATH=$(pwd)/cert.pfx
-        export AZURE_CLIENT_CERTIFICATE_PATH=$(pwd)/cert.pfx
         terraform init -backend-config=${{ inputs.backend-path }} -reconfigure
         terraform plan -var-file=${{ inputs.vars-path }} -no-color -out=${{ inputs.tfplan-name }} > planfile
         cat planfile
