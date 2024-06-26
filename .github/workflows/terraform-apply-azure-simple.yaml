@@ -1,0 +1,69 @@
+on:
+  workflow_call:
+    inputs:
+      github-env:
+        description: 'The name of Github environment, which configures all environment variables and secrets'
+        required: true
+        type: string
+      working-directory:
+        description: 'The working directory of Terraform project'
+        required: true
+        type: string
+      backend-path:
+        description: 'The path of Terraform backend config file, relative to working-directory'
+        required: false
+        type: string
+      runner-label:
+        description: 'The label of the runner, only supports one at this moment'
+        required: false
+        default: ubuntu-latest
+        type: string
+      tfplan-name:
+        description: 'The file name of Terraform plan output'
+        required: true
+        type: string
+      artifact-name:
+        description: 'The name of artifact to download'
+        required: false
+        default: artifact
+        type: string
+
+name: PE Apply 
+jobs:
+  apply:
+    runs-on: ${{ inputs.runner-label }}
+    environment: ${{ inputs.github-env }}-approval
+    env:
+      ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+      
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.working-directory }}
+
+    - name: AZ cli login
+      shell: bash
+      run: |
+        echo "${{ secrets.arm_client_certificate }}" | base64 -d > cert.pfx
+        openssl pkcs12 -in cert.pfx -out cert.pem -nodes -passin pass: # Convert cert from pfx to pem, AZ Cli only accepts pem
+        az login --service-principal -u $ARM_CLIENT_ID -p cert.pem --tenant $ARM_TENANT_ID
+        az account set -s $ARM_SUBSCRIPTION_ID
+        rm cert.pfx
+      working-directory: ${{ inputs.working-directory }}
+    
+    - name: Terraform apply
+      shell: bash
+      run: |
+        echo "${{ secrets.arm_client_certificate }}" | base64 -d > cert.pfx
+        export ARM_CLIENT_CERTIFICATE_PATH=$(pwd)/cert.pfx
+        export AZURE_CLIENT_CERTIFICATE_PATH=$(pwd)/cert.pfx
+        terraform init -backend-config=${{ inputs.backend-path }} -reconfigure
+        terraform apply ${{ inputs.tfplan-name }}
+        rm cert.pfx
+      working-directory: ${{ inputs.working-directory }}

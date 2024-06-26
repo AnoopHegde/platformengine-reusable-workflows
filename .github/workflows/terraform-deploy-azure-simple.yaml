@@ -1,0 +1,65 @@
+on:
+  workflow_call:
+    inputs:
+      github-env:
+        description: 'The Github environment to use for this QWEloy'
+        required: true
+        type: string
+      environment:
+        description: 'The environment to be created'
+        required: true
+        type: string
+      working-directory:
+        description: 'The working directory of Terraform project'
+        required: true
+        type: string
+      vars-path:
+        description: 'The path of Terraform var file, relative to working-directory'
+        required: true
+        type: string
+      backend-path:
+        description: 'The path of Terraform backend config file, relative to working-directory'
+        required: false
+        type: string
+      runner-label:
+        description: 'The label of the runner, only supports one at this moment'
+        required: false
+        default: ubuntu-latest
+        type: string
+
+name: PE Deploy
+jobs:
+  plan:
+    uses: ./.github/workflows/terraform-plan-azure-simple.yaml
+    with:
+      github-env: ${{ inputs.github-env }}
+      environment: ${{ inputs.environment }}
+      working-directory: ${{ inputs.working-directory }}
+      vars-path: ${{ inputs.vars-path }}
+      backend-path: ${{ inputs.backend-path }}
+      runner-label: ${{ inputs.runner-label }}
+      tfplan-name: plan-${{ inputs.environment }}.out
+      artifact-name: artifact-${{ inputs.environment }}
+    secrets: inherit
+
+  infracost:
+    needs: plan
+    uses: AnoopHegde/platformengine-reusable-workflows/.github/workflows/infracost-reusable-cicd.yaml@main
+    with:
+      working-directory: ${{ inputs.working-directory }}
+    secrets:
+       PE_INFRACOST_API_KEY: ${{ secrets.PE_INFRACOST_API_KEY }}
+
+
+  apply:
+    if: github.ref_name == 'main'
+    needs: plan
+    uses: ./.github/workflows/terraform-apply-azure-simple.yaml
+    with:
+      github-env: ${{ inputs.github-env }}
+      working-directory: ${{ inputs.working-directory }}
+      backend-path: ${{ inputs.backend-path }}
+      runner-label: ${{ inputs.runner-label }}
+      tfplan-name: plan-${{ inputs.environment }}.out
+      artifact-name: artifact-${{ inputs.environment }}
+    secrets: inherit
