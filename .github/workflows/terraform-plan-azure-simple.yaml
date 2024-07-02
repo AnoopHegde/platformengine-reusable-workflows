@@ -53,7 +53,7 @@ jobs:
     - name: AZ cli login
       shell: bash
       run: |
-        CERT=$(az keyvault certificate show --id ${{ secrets.keyvault_id }} | jq --raw-output '.cer')
+        CERT=$(echo ${{ secrets.arm_client_certificate }})
         echo "$CERT" | base64 -d > cert.pfx
         openssl pkcs12 -in cert.pfx -out cert.pem -nodes -passin pass: # Convert cert from pfx to pem, AZ Cli only accepts pem
         az login --service-principal -u $ARM_CLIENT_ID -p cert.pem --tenant $ARM_TENANT_ID
