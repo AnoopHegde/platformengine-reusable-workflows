@@ -82,9 +82,6 @@ jobs:
         cat planfile  >> $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
 
-        rm cert.pfx
-        rm client.crt
-        rm client.key
       working-directory: ${{ inputs.working-directory }}
 
     - name: upload tfplan-json artifact

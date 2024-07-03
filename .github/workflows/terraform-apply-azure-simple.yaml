@@ -67,7 +67,4 @@ jobs:
       run: |
         terraform init -backend-config=${{ inputs.backend-path }} -reconfigure
         terraform apply ${{ inputs.tfplan-name }}
-        rm cert.pfx
-        rm client.crt
-        rm client.key
       working-directory: ${{ inputs.working-directory }}
