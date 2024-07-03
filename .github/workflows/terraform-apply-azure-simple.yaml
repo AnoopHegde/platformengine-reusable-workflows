@@ -68,7 +68,7 @@ jobs:
         echo "${{ secrets.ARM_CLIENT_KEY }}" > client.key
         openssl pkcs12 -export -password pass:"Pa55w0rd123" -out cert.pfx -inkey client.key -in client.crt
         openssl pkcs12 -in cert.pfx -out cert.pem -nodes -passin pass:"Pa55w0rd123"
-        export ARM_CLIENT_CERTIFICATE_PATH=cert.pem
+        export ARM_CLIENT_CERTIFICATE_PATH=cert.pfx
         terraform init -backend-config=${{ inputs.backend-path }} -reconfigure
         terraform apply ${{ inputs.tfplan-name }}
         rm cert.pfx
