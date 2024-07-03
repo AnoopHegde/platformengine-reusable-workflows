@@ -53,11 +53,15 @@ jobs:
     - name: AZ cli login
       shell: bash
       run: |
-        echo "${{ secrets.ARM_CLIENT_CERTIFICATE }}" | base64 -d > cert.pfx
-        openssl pkcs12 -in cert.pfx -out cert.pem -nodes -passin pass: # Convert cert from pfx to pem, AZ Cli only accepts pem
+        echo "${{ secrets.ARM_CLIENT_CERTIFICATE }}" > client.crt
+        echo "${{ secrets.ARM_CLIENT_KEY }}" > client.key
+        openssl pkcs12 -export -password pass:"Pa55w0rd123" -out cert.pfx -inkey client.key -in client.crt
+        openssl pkcs12 -in cert.pfx -out cert.pem -nodes -passin pass:"Pa55w0rd123"
         az login --service-principal -u $ARM_CLIENT_ID -p cert.pem --tenant $ARM_TENANT_ID
         az account set -s $ARM_SUBSCRIPTION_ID
         rm cert.pfx
+        rm client.crt
+        rm client.key
       working-directory: ${{ inputs.working-directory }}
 
     # Check if  secrets.flux_github_token can be replaced by secrets.github_token
@@ -65,7 +69,9 @@ jobs:
       id: tfplan
       shell: bash
       run: |
-        echo "${{ secrets.ARM_CLIENT_CERTIFICATE }}" | base64 -d > cert.pfx
+        echo "${{ secrets.ARM_CLIENT_CERTIFICATE }}" > client.crt
+        echo "${{ secrets.ARM_CLIENT_KEY }}" > client.key
+        openssl pkcs12 -export -password pass:"Pa55w0rd123" -out cert.pfx -inkey client.key -in client.crt
         export ARM_CLIENT_CERTIFICATE_PATH=$(pwd)/cert.pfx
         terraform init -backend-config=${{ inputs.backend-path }} -reconfigure
         terraform plan -var-file=${{ inputs.vars-path }} -no-color -out=${{ inputs.tfplan-name }} > planfile
@@ -80,6 +86,8 @@ jobs:
         echo 'EOF' >> $GITHUB_OUTPUT
 
         rm cert.pfx
+        rm client.crt
+        rm client.key
       working-directory: ${{ inputs.working-directory }}
 
     - name: upload tfplan-json artifact
