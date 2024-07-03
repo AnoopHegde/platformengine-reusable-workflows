@@ -37,6 +37,7 @@ jobs:
       ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       
     steps:
     - name: Checkout
@@ -64,11 +65,6 @@ jobs:
     - name: Terraform apply
       shell: bash
       run: |
-        echo "${{ secrets.ARM_CLIENT_CERTIFICATE }}" > client.crt
-        echo "${{ secrets.ARM_CLIENT_KEY }}" > client.key
-        openssl pkcs12 -export -password pass:"Pa55w0rd123" -out cert.pfx -inkey client.key -in client.crt
-        openssl pkcs12 -in cert.pfx -out cert.pem -nodes -passin pass:"Pa55w0rd123"
-        export ARM_CLIENT_CERTIFICATE_PATH=cert.pfx
         terraform init -backend-config=${{ inputs.backend-path }} -reconfigure
         terraform apply ${{ inputs.tfplan-name }}
         rm cert.pfx
