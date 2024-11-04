@@ -26,6 +26,10 @@ on:
         required: false
         default: ubuntu-latest
         type: string
+      tfvars:
+        description: 'TF Variables'
+        required: false
+        type: string      
 
 name: PE Deploy
 jobs:
@@ -40,6 +44,7 @@ jobs:
       runner-label: ${{ inputs.runner-label }}
       tfplan-name: plan-${{ inputs.environment }}.out
       artifact-name: artifact-${{ inputs.environment }}
+      tfvars: ${{inputs.tfvars}}
     secrets: inherit
 
   infracost:
@@ -62,4 +67,5 @@ jobs:
       runner-label: ${{ inputs.runner-label }}
       tfplan-name: plan-${{ inputs.environment }}.out
       artifact-name: artifact-${{ inputs.environment }}
+      tfvars: ${{inputs.tfvars}}
     secrets: inherit
