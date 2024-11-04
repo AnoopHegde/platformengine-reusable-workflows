@@ -2,39 +2,39 @@ on:
   workflow_call:
     inputs:
       github-env:
-        description: 'The name of Github environment, which configures all environment variables and secrets'
+        description: "The name of Github environment, which configures all environment variables and secrets"
         required: true
         type: string
       working-directory:
-        description: 'The working directory of Terraform project'
+        description: "The working directory of Terraform project"
         required: true
         type: string
       backend-path:
-        description: 'The path of Terraform backend config file, relative to working-directory'
+        description: "The path of Terraform backend config file, relative to working-directory"
         required: false
         type: string
       runner-label:
-        description: 'The label of the runner, only supports one at this moment'
+        description: "The label of the runner, only supports one at this moment"
         required: false
         default: ubuntu-latest
         type: string
       tfplan-name:
-        description: 'The file name of Terraform plan output'
+        description: "The file name of Terraform plan output"
         required: true
         type: string
       artifact-name:
-        description: 'The name of artifact to download'
+        description: "The name of artifact to download"
         required: false
         default: artifact
         type: string
       tfvars:
-        description: 'TF Variables'
+        description: "TF Variables"
         required: false
-        type: string   
+        type: string
 env:
   flux_github_token: ${{ secrets.flux_github_token }}
 
-name: PE Apply 
+name: PE Apply
 jobs:
   apply:
     runs-on: ${{ inputs.runner-label }}
@@ -44,33 +44,46 @@ jobs:
       ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-      
+
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - uses: actions/download-artifact@v3
-      with:
-        name: ${{ inputs.artifact-name }}
-        path: ${{ inputs.working-directory }}
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.working-directory }}
 
-    - name: AZ cli login
-      shell: bash
-      run: |
-        echo "${{ secrets.ARM_CLIENT_CERTIFICATE }}" > client.crt
-        echo "${{ secrets.ARM_CLIENT_KEY }}" > client.key
-        openssl pkcs12 -export -password pass:"Pa55w0rd123" -out cert.pfx -inkey client.key -in client.crt
-        openssl pkcs12 -in cert.pfx -out cert.pem -nodes -passin pass:"Pa55w0rd123"
-        az login --service-principal -u $ARM_CLIENT_ID -p cert.pem --tenant $ARM_TENANT_ID
-        az account set -s $ARM_SUBSCRIPTION_ID
-        rm cert.pfx
-        rm client.crt
-        rm client.key
-      working-directory: ${{ inputs.working-directory }}
-    
-    - name: Terraform apply
-      shell: bash
-      run: |
-        terraform init -backend-config=${{ inputs.backend-path }} -reconfigure
-        terraform apply ${{ inputs.tfplan-name }}
-      working-directory: ${{ inputs.working-directory }}
+      - name: AZ cli login
+        shell: bash
+        run: |
+          echo "${{ secrets.ARM_CLIENT_CERTIFICATE }}" > client.crt
+          echo "${{ secrets.ARM_CLIENT_KEY }}" > client.key
+          openssl pkcs12 -export -password pass:"Pa55w0rd123" -out cert.pfx -inkey client.key -in client.crt
+          openssl pkcs12 -in cert.pfx -out cert.pem -nodes -passin pass:"Pa55w0rd123"
+          az login --service-principal -u $ARM_CLIENT_ID -p cert.pem --tenant $ARM_TENANT_ID
+          az account set -s $ARM_SUBSCRIPTION_ID
+          rm cert.pfx
+          rm client.crt
+          rm client.key
+        working-directory: ${{ inputs.working-directory }}
+
+      - name: Configure SSH private keys
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.ADO_SSH_PRIVATE_KEY }}
+
+      - name: Add ADO host key
+        shell: bash
+        run: |
+          ssh-keyscan ssh.dev.azure.com >> ~/.ssh/known_hosts
+          chmod 400 ~/.ssh/known_hosts
+        working-directory: ${{ inputs.working-directory }}
+
+      - name: Terraform apply
+        shell: bash
+        run: |
+          terraform init -backend-config=${{ inputs.backend-path }} -reconfigure
+          terraform apply ${{ inputs.tfplan-name }}
+        working-directory: ${{ inputs.working-directory }}
