@@ -27,6 +27,12 @@ on:
         required: false
         default: artifact
         type: string
+      tfvars:
+        description: 'TF Variables'
+        required: false
+        type: string   
+env:
+  flux_github_token: ${{ secrets.flux_github_token }}
 
 name: PE Apply 
 jobs:
