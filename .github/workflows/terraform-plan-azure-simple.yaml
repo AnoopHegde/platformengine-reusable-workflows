@@ -98,7 +98,7 @@ jobs:
         shell: bash
         run: |
           terraform init -backend-config=${{ inputs.backend-path }} -reconfigure
-          terraform plan -var-file=${{ inputs.vars-path }} -no-color -out=${{ inputs.tfplan-name }} > planfile
+          terraform plan -var-file=${{ inputs.vars-path }} ${{ inputs.tfvars }} -no-color -out=${{ inputs.tfplan-name }} > planfile
           cat planfile
           cp planfile $GITHUB_WORKSPACE/
 
