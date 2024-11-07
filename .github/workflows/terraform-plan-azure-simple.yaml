@@ -77,7 +77,7 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_wrapper: false
-          terraform_version: "1.4.0"   
+          terraform_version: "1.4.0"
 
       - name: Configure SSH private keys
         uses: webfactory/ssh-agent@v0.7.0
@@ -130,8 +130,8 @@ jobs:
           if-no-files-found: error
 
       # When a PR is raised, write the Plan and Status to the PR as a comment
-      - name: Write PE Plan to PR
-        uses: actions/github-script@v5
+      - name: Write DEP Plan to PR
+        uses: actions/github-script@v7.0.0
         if: github.event_name == 'pull_request'
         with:
           github-token: ${{ github.token }}
@@ -141,51 +141,53 @@ jobs:
             let plan = await fs.readFile(`${process.env.GITHUB_WORKSPACE}/planfile`, 'utf8');
 
             // Filter out unnecessary lines
-             const patterns = [': Reading...', ': Refreshing state...', ': Read complete after', ': Still reading...'];
-             plan = plan.split('\n').filter(line => !patterns.some(pattern => line.includes(pattern))).join('\n');
+            const patterns = [': Reading...', ': Refreshing state...', ': Read complete after', ': Still reading...'];
+            plan = plan.split('\n').filter(line => !patterns.some(pattern => line.includes(pattern))).join('\n');
 
             // 1. Retrieve existing bot comments for the PR
-             const { data: comments } = await github.rest.issues.listComments({
-               owner: context.repo.owner,
-               repo: context.repo.repo,
-               issue_number: context.issue.number,
-             });
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
 
-             const botComment = comments.find(comment => {
-               return comment.user.type === 'Bot' &&
-                       comment.body.includes('#### Environment `${{ inputs.environment }}`') &&
-                       comment.body.includes('#### Layer `${{ inputs.working-directory }}`') &&
-                       comment.body.includes('#### QSAloyment Engine Plan');
-             });
+            // Search for an existing bot comment related to this environment and layer
+            const botComment = comments.find(comment => {
+            return comment.user.type === 'Bot' &&
+                  comment.body.includes(`#### Environment \`${{ inputs.environment }}\``) &&
+                  comment.body.includes(`#### Workflow \`${{ inputs.working-directory }}\``);
+            });
 
-             // 2. Prepare format of the comment
-             const output = `#### Environment \`${{ inputs.environment }}\`
-             #### Workflow \`${{ inputs.working-directory }}\`
-             #### QSAloyment Engine Plan 📖\`${{ steps.tfplan.outcome }}\`
-             QSAloyment Engine Plan:
-             <details><summary>Show Plan</summary>
+            // 2. Prepare format of the comment
+            const output = `#### Environment \`${{ inputs.environment }}\`
+            #### Workflow \`${{ inputs.working-directory }}\`
+            #### Deployment Engine Plan 📖\`${{ steps.tfplan.outcome }}\`
+            Deployment Engine Plan:
+            <details><summary>Show Plan</summary>
 
-             \`\`\`\n
-             ${plan}
-             \`\`\`
+            \`\`\`\n
+            ${plan}
+            \`\`\`
 
-             </details>
+            </details>
 
-             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
 
-             // 3. If we have a comment, update it, otherwise create a new one
-             if (botComment) {
-               github.rest.issues.updateComment({
-                 owner: context.repo.owner,
-                 repo: context.repo.repo,
-                 comment_id: botComment.id,
-                 body: output
-               });
-             } else {
-               github.rest.issues.createComment({
-                 issue_number: context.issue.number,
-                 owner: context.repo.owner,
-                 repo: context.repo.repo,
-                 body: output
-               });
-             }
+            // 3. If we have a comment, update it, otherwise create a new one
+            if (botComment) {
+              console.log('Updating existing bot comment...');
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: output
+              });
+            } else {
+              console.log('Creating a new comment...');
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              });
+            }
