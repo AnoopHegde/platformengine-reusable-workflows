@@ -144,6 +144,9 @@ jobs:
             const patterns = [': Reading...', ': Refreshing state...', ': Read complete after', ': Still reading...'];
             plan = plan.split('\n').filter(line => !patterns.some(pattern => line.includes(pattern))).join('\n');
 
+            //Truncate unwanted message
+            const truncated_message = plan.length > 65000 ? "Output is too long and was truncated. You can read full Plan in " + run_link + "<br /><br />" : ""
+
             // 1. Retrieve existing bot comments for the PR
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
@@ -170,6 +173,7 @@ jobs:
             \`\`\`
 
             </details>
+            ${truncated_message}
 
             *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
 
