@@ -144,6 +144,12 @@ jobs:
             const patterns = [': Reading...', ': Refreshing state...', ': Read complete after', ': Still reading...'];
             plan = plan.split('\n').filter(line => !patterns.some(pattern => line.includes(pattern))).join('\n');
 
+            //Truncate the plan if the character exceeds 65536 characters
+            const maxLength = 65536;
+            if (plan.length > maxLength) {
+              plan = plan.substring(0, maxLength) + '\n...truncated...';
+            }
+             
             // 1. Retrieve existing bot comments for the PR
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
