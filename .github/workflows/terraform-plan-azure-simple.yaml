@@ -39,6 +39,11 @@ on:
         description: "TF Variables"
         required: false
         type: string
+      bastion-proxy:
+        description: 'Bastion proxy required'
+        required: false
+        default: false
+        type: boolean  
 
 env:
   flux_github_token: ${{ secrets.flux_github_token }}
@@ -57,6 +62,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Bastion_proxy
+        if: ${{ inputs.bastion-proxy }}
+        shell: bash
+        run: |
+          echo "${{ secrets.bastion_kubeconfig }}" > /tmp/bastion_kubeconfig
+          /usr/local/bin/kubectl port-forward -n tinyproxy deployment/pe-bastion-proxy 8888:8888 --kubeconfig=/tmp/bastion_kubeconfig &>/dev/null &
+          sleep 5
+          /usr/local/bin/kubectl get pods -n tinyproxy --kubeconfig=/tmp/bastion_kubeconfig  
 
       - name: AZ cli login
         shell: bash
