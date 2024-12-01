@@ -65,7 +65,7 @@ jobs:
           echo "${{ secrets.ARM_CLIENT_KEY }}" > client.key
           openssl pkcs12 -export -password pass:"Pa55w0rd123" -out cert.pfx -inkey client.key -in client.crt
           openssl pkcs12 -in cert.pfx -out cert.pem -nodes -passin pass:"Pa55w0rd123"
-          az login --service-principal -u $ARM_CLIENT_ID -p cert.pem --tenant $ARM_TENANT_ID
+          az login --service-principal -u $ARM_CLIENT_ID --certificate cert.pem --tenant $ARM_TENANT_ID
           az account set -s $ARM_SUBSCRIPTION_ID
           rm cert.pfx
           rm client.crt
