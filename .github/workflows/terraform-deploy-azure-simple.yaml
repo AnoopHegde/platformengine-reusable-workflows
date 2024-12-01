@@ -29,7 +29,12 @@ on:
       tfvars:
         description: 'TF Variables'
         required: false
-        type: string      
+        type: string
+      bastion-proxy:
+        description: 'Bastion Proxy'
+        default: false
+        required: false
+        type: boolean   
 
 name: PE Deploy
 jobs:
@@ -44,6 +49,7 @@ jobs:
       runner-label: ${{ inputs.runner-label }}
       tfplan-name: plan-${{ inputs.environment }}.out
       artifact-name: artifact-${{ inputs.environment }}
+      bastion-proxy:  ${{ inputs.bastion-proxy }}
       tfvars: ${{inputs.tfvars}}
     secrets: inherit
 
@@ -67,5 +73,6 @@ jobs:
       runner-label: ${{ inputs.runner-label }}
       tfplan-name: plan-${{ inputs.environment }}.out
       artifact-name: artifact-${{ inputs.environment }}
+      bastion-proxy:  ${{ inputs.bastion-proxy }}
       tfvars: ${{inputs.tfvars}}
     secrets: inherit
