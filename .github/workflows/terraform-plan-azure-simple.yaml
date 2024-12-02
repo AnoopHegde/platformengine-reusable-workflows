@@ -63,18 +63,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install kubelogin plugin for AKS Authentication
+      - name: Bastion_proxy
+        if: ${{ inputs.bastion-proxy }}
         shell: bash
         run: |
-          # Install `kubelogin` for AKS authentication
-          if [[ ! -f /usr/local/bin/kubelogin ]]; then
-              cd /tmp
-              curl -fsSLO https://github.com/Azure/kubelogin/releases/download/v0.1.4/kubelogin-linux-amd64.zip
-              unzip kubelogin-linux-amd64.zip
-              sudo install -o root -g root -m 0755 bin/linux_amd64/kubelogin /usr/local/bin
-              rm -f kubelogin-linux-amd64.zip
-              kubelogin --version
-          fi
+          echo "${{ secrets.bastion_kubeconfig }}" > /tmp/bastion_kubeconfig
+          /usr/local/bin/kubectl port-forward -n tinyproxy deployment/pe-bastion-proxy 8888:8888 --kubeconfig=/tmp/bastion_kubeconfig &>/dev/null &
+          sleep 5
+          /usr/local/bin/kubectl get pods -n tinyproxy --kubeconfig=/tmp/bastion_kubeconfig     
 
       - name: AZ cli login
         shell: bash
@@ -90,17 +86,8 @@ jobs:
           rm client.key
         working-directory: ${{ inputs.working-directory }}
 
-      - name: Bastion_proxy
-        if: ${{ inputs.bastion-proxy }}
-        shell: bash
-        run: |
-          echo "${{ secrets.bastion_kubeconfig }}" > /tmp/bastion_kubeconfig
-          /usr/local/bin/kubectl port-forward -n tinyproxy deployment/pe-bastion-proxy 8888:8888 --kubeconfig=/tmp/bastion_kubeconfig &>/dev/null &
-          sleep 5
-          /usr/local/bin/kubectl get pods -n tinyproxy --kubeconfig=/tmp/bastion_kubeconfig  
-   
       - name: Install latest Terraform
-        if: ${{ !contains(inputs.runner-label, 'ubuntu-latest') }}
+        if: ${{ !contains(inputs.runner-label, 'pe-arc') }}
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_wrapper: false
