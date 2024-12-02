@@ -76,15 +76,6 @@ jobs:
               kubelogin --version
           fi
 
-      - name: Bastion_proxy
-        if: ${{ inputs.bastion-proxy }}
-        shell: bash
-        run: |
-          echo "${{ secrets.bastion_kubeconfig }}" > /tmp/bastion_kubeconfig
-          /usr/local/bin/kubectl port-forward -n tinyproxy deployment/pe-bastion-proxy 8888:8888 --kubeconfig=/tmp/bastion_kubeconfig &>/dev/null &
-          sleep 5
-          /usr/local/bin/kubectl get pods -n tinyproxy --kubeconfig=/tmp/bastion_kubeconfig  
-
       - name: AZ cli login
         shell: bash
         run: |
@@ -99,6 +90,15 @@ jobs:
           rm client.key
         working-directory: ${{ inputs.working-directory }}
 
+      - name: Bastion_proxy
+        if: ${{ inputs.bastion-proxy }}
+        shell: bash
+        run: |
+          echo "${{ secrets.bastion_kubeconfig }}" > /tmp/bastion_kubeconfig
+          /usr/local/bin/kubectl port-forward -n tinyproxy deployment/pe-bastion-proxy 8888:8888 --kubeconfig=/tmp/bastion_kubeconfig &>/dev/null &
+          sleep 5
+          /usr/local/bin/kubectl get pods -n tinyproxy --kubeconfig=/tmp/bastion_kubeconfig  
+   
       - name: Install latest Terraform
         if: ${{ !contains(inputs.runner-label, 'ubuntu-latest') }}
         uses: hashicorp/setup-terraform@v2
