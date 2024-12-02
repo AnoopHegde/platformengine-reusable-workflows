@@ -73,7 +73,6 @@ jobs:
         shell: bash
         run: |
           echo "${{ secrets.bastion_kubeconfig }}" > /tmp/bastion_kubeconfig
-          kubelogin convert-kubeconfig --kubeconfig /tmp/bastion_kubeconfig
           kubectl port-forward -n tinyproxy deployment/pe-bastion-proxy 8888:8888 --kubeconfig=/tmp/bastion_kubeconfig &>/dev/null &
           sleep 5
           kubectl get pods -n tinyproxy --kubeconfig=/tmp/bastion_kubeconfig 
