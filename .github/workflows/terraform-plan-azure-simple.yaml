@@ -63,6 +63,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install kubelogin plugin for AKS Authentication
+        shell: bash
+        run: |
+          # Install `kubelogin` for AKS authentication
+          if [[ ! -f /usr/local/bin/kubelogin ]]; then
+              cd /tmp
+              curl -fsSLO https://github.com/Azure/kubelogin/releases/download/v0.1.4/kubelogin-linux-amd64.zip
+              unzip kubelogin-linux-amd64.zip
+              sudo install -o root -g root -m 0755 bin/linux_amd64/kubelogin /usr/local/bin
+              rm -f kubelogin-linux-amd64.zip
+              kubelogin --version
+          fi    
+   
       - name: Bastion_proxy
         if: ${{ inputs.bastion-proxy }}
         shell: bash
