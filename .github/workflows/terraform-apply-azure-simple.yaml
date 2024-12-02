@@ -60,10 +60,9 @@ jobs:
         shell: bash
         run: |
           echo "${{ secrets.bastion_kubeconfig }}" > /tmp/bastion_kubeconfig
-          ls -s /usr/bin/kubectl /usr/local/bin/kubectl
-          /usr/local/bin/kubectl port-forward -n tinyproxy deployment/pe-bastion-proxy 8888:8888 --kubeconfig=/tmp/bastion_kubeconfig &>/dev/null &
+          kubectl port-forward -n tinyproxy deployment/pe-bastion-proxy 8888:8888 --kubeconfig=/tmp/bastion_kubeconfig &>/dev/null &
           sleep 5
-          /usr/local/bin/kubectl get pods -n tinyproxy --kubeconfig=/tmp/bastion_kubeconfig 
+          kubectl get pods -n tinyproxy --kubeconfig=/tmp/bastion_kubeconfig 
       
       - uses: actions/download-artifact@v3
         with:
